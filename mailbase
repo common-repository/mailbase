@@ -1,0 +1,115 @@
+<?php
+/*
+Plugin Name: MailBase
+Plugin URI: http://www.sitebase.be
+Description: Use a custom mail server to send mails in WP. This way you can also send emails when testing on your local server.
+Version: 0.1
+Author: Sitebase
+Author URI: http://www.sitebase.be
+
+------------------------------------------------------------------------
+USAGE
+------------------------------------------------------------------------
+
+The only thing you need to change is the private options array. Fill in 
+the correct data for the SMTP server you want to use and all mails will
+now be send using that server.
+
+*** GMAIL EXAMPLE ***
+private static $_options = array (
+	'mail_from' => '',
+	'mail_from_name' => '',
+	'mailer' => 'smtp',
+	'smtp_host' => 'smtp.gmail.com',
+	'smtp_port' => '465',
+	'smtp_secure' => 'ssl',
+	'smtp_auth' => true,
+	'smtp_user' => '',
+	'smtp_pass' => ''
+);
+
+------------------------------------------------------------------------
+Copyright (c) 2008-2011 Sitebase (http://www.sitebase.be)
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+*/
+
+
+// Add an action on phpmailer_init
+add_action('phpmailer_init', array('MailBase', 'init'));
+
+// Filter from name and from email
+add_filter('wp_mail_from', array('MailBase', 'set_mail_from'));
+add_filter('wp_mail_from_name', array('MailBase', 'set_mail_from_name'));
+
+class MailBase {
+	
+	/**
+	 * Modify these options to use your SMTP server
+	 * @var array
+	 */
+	private static $_options = array (
+		'mail_from' => 'email@yoursite.com',
+		'mail_from_name' => 'Your Name',
+		'mailer' => 'smtp',
+		'smtp_host' => 'smtp.gmail.com',
+		'smtp_port' => '465',
+		'smtp_secure' => 'ssl',		// none, ssl
+		'smtp_auth' => true,
+		'smtp_user' => '',
+		'smtp_pass' => ''
+	);
+	
+	/**
+	 * Configure the PHPMailer
+	 *
+	 * @return void
+	 */
+	public function init($phpmailer) {
+		$phpmailer->Mailer = self::$_options['mailer'];
+		$phpmailer->SMTPSecure = self::$_options['smtp_secure'];
+		$phpmailer->Host = self::$_options['smtp_host'];
+		$phpmailer->Port = self::$_options['smtp_port'];
+		if (self::$_options['smtp_auth']) {
+			$phpmailer->SMTPAuth = true;
+			$phpmailer->Username = self::$_options['smtp_user'];
+			$phpmailer->Password = self::$_options['smtp_pass'];
+		}
+	}
+	
+	/**
+	 * Set the mail from address
+	 *
+	 * @param string $current
+	 * @return string
+	 */
+	public function set_mail_from ($current) {
+		$sitename = strtolower( $_SERVER['SERVER_NAME'] );
+		if ( substr( $sitename, 0, 4 ) == 'www.' ) $default_from = 'wordpress@' . substr( $sitename, 4 );
+		if ( $current != $default_from ) return $current;
+		return  self::$_options['mail_from'];
+	}
+
+	/**
+	 * Set the mail from name
+	 *
+	 * @param string $current
+	 * @return string
+	 */
+	public function set_mail_from_name ($current) {
+		return  self::$_options['mail_from_name'];
+	}
+	
+}
